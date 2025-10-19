@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>💖 Chúc công chúa của anh 20/10 vui vẻ 💖</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    height: 100%;
+    background: radial-gradient(circle at 50% 30%, #240010, #000);
+    animation: bgPulse 6s infinite alternate;
+  }
+  @keyframes bgPulse {
+    0% { background: radial-gradient(circle at 50% 30%, #320015, #000); }
+    100% { background: radial-gradient(circle at 50% 30%, #1e0010, #000); }
+  }
+  canvas {
+    display: block;
+  }
+  .title {
+    position: absolute;
+    top: 5%;
+    width: 100%;
+    text-align: center;
+    font-size: 2.4em;
+    color: #ffdff0;
+    font-family: 'Comic Sans MS', cursive;
+    text-shadow: 0 0 10px #ff99bb, 0 0 20px #ff66aa, 0 0 30px #ff3399;
+  }
+  .footer {
+    position: absolute;
+    bottom: 5%;
+    width: 100%;
+    text-align: center;
+    color: #ffdff0;
+    font-family: 'Comic Sans MS', cursive;
+    font-size: 1.3em;
+    text-shadow: 0 0 10px #ff99bb;
+    transition: opacity 1s ease-in-out;
+  }
+  @keyframes floatUp {
+    0% { transform: translateY(0) scale(1); opacity: 1; }
+    100% { transform: translateY(-100px) scale(1.2); opacity: 0; }
+  }
+  .floating-text {
+    position: absolute;
+    color: #ffb6c1;
+    font-family: 'Comic Sans MS', cursive;
+    text-shadow: 0 0 10px #ff99cc, 0 0 20px #ff66aa;
+    pointer-events: none;
+    animation: floatUp 3s ease-out forwards;
+  }
+</style>
+</head>
+<body>
+<div class="title">💖 Chúc công chúa của anh 20/10 vui vẻ 💖</div>
+<div class="footer"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+let scene = new THREE.Scene();
+let camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 1000);
+let renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// 💗 Ánh sáng
+const light = new THREE.PointLight(0xff88bb, 1.5);
+light.position.set(10, 10, 25);
+scene.add(light);
+scene.add(new THREE.AmbientLight(0xff99cc, 0.5));
+
+// 💞 Trái tim bằng hạt sáng (giữ nguyên, chỉ to hơn)
+const geometry = new THREE.BufferGeometry();
+const positions = [];
+const PARTICLE_COUNT = 9000;
+for (let i = 0; i < PARTICLE_COUNT; i++) {
+  const t = Math.random() * Math.PI * 2;
+  const z = (Math.random() - 0.5) * 1.5;
+  const x = 16 * Math.pow(Math.sin(t), 3);
+  const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+  // 💗 tăng kích thước lên ~30%
+  positions.push(x * 0.28, (y + 2) * 0.28, z * 0.28);
+}
+geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+const material = new THREE.PointsMaterial({
+  color: 0xff99cc,
+  size: 0.25,
+  transparent: true,
+  opacity: 0.9
+});
+const heart = new THREE.Points(geometry, material);
+scene.add(heart);
+
+// ✨ Sparkles
+const sparklesGeometry = new THREE.BufferGeometry();
+const sparklesPositions = [];
+for (let i = 0; i < 1000; i++) {
+  sparklesPositions.push((Math.random() - 0.5) * 25, (Math.random() - 0.5) * 25, (Math.random() - 0.5) * 25);
+}
+sparklesGeometry.setAttribute('position', new THREE.Float32BufferAttribute(sparklesPositions, 3));
+const sparkles = new THREE.Points(sparklesGeometry, new THREE.PointsMaterial({ color: 0xffffff, size: 0.03, opacity: 0.8, transparent: true }));
+scene.add(sparkles);
+
+// 💫 Đom đóm
+const firefliesGeometry = new THREE.BufferGeometry();
+const firefliesPositions = [];
+for (let i = 0; i < 100; i++) {
+  firefliesPositions.push((Math.random() - 0.5) * 15, Math.random() * 8, (Math.random() - 0.5) * 15);
+}
+firefliesGeometry.setAttribute('position', new THREE.Float32BufferAttribute(firefliesPositions, 3));
+const fireflies = new THREE.Points(firefliesGeometry, new THREE.PointsMaterial({ color: 0xffccff, size: 0.08, transparent: true, opacity: 0.7 }));
+scene.add(fireflies);
+
+// 💞 Camera
+camera.position.set(0, 0, 18);
+camera.lookAt(0, 0, 0);
+
+let clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+  const beat = 1 + 0.12 * Math.sin(t * 6);
+
+  heart.scale.set(beat, beat, beat);
+  material.opacity = 0.8 + 0.2 * Math.sin(t * 6);
+
+  heart.rotation.y = t * 0.25;
+  heart.rotation.x = Math.sin(t * 0.3) * 0.07;
+
+  sparkles.rotation.y = t * 0.08;
+  fireflies.rotation.y = t * 0.1;
+  fireflies.position.y = Math.sin(t * 0.8) * 0.3;
+
+  if (Math.floor(t * 2) % 6 === 0 && Math.random() < 0.04) createFloatingText();
+  renderer.render(scene, camera);
+}
+animate();
+
+// 🎀 Hiệu ứng chữ bay
+function createFloatingText(x, y) {
+  const msg = document.createElement("div");
+  msg.className = "floating-text";
+  msg.textContent = "💞 Anh yêu mình 💞";
+  msg.style.left = (x ?? Math.random() * window.innerWidth) + "px";
+  msg.style.top = (y ?? Math.random() * window.innerHeight) + "px";
+  msg.style.fontSize = (Math.random() * 1 + 1.2) + "em";
+  document.body.appendChild(msg);
+  setTimeout(() => msg.remove(), 3000);
+}
+
+// 📱 Responsive
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// 💗 Click hiện chữ bay
+document.body.addEventListener('click', e => createFloatingText(e.clientX, e.clientY));
+
+// 🌹 Lời chúc tự thay đổi
+const footer = document.querySelector('.footer');
+const messages = [
+  "💐 Chúc em yêu ngày càng xinh đẹp 💐",
+  "🌹 Chúc em yêu luôn luôn vui vẻ🌹",
+  "💖 Chúc em yêu 20/10 ngọt ngào và hạnh phúc 💖",
+  "✨ Chúc công chúa mãi là của anh ✨"
+];
+let idx = 0;
+setInterval(() => {
+  footer.style.opacity = 0;
+  setTimeout(() => {
+    footer.textContent = messages[idx];
+    footer.style.opacity = 1;
+    idx = (idx + 1) % messages.length;
+  }, 1000);
+}, 4000);
+
+// 🎵 Nhạc nền YouTube
+let player, started = false;
+function onYouTubeIframeAPIReady() {
+  player = new YT.Player('player', {
+    height: '0',
+    width: '0',
+    videoId: 'IOe0tNoUGv8',
+    playerVars: { autoplay: 1, loop: 1, playlist: 'IOe0tNoUGv8' },
+    events: { onReady: e => e.target.playVideo() }
+  });
+}
+const tag = document.createElement('script');
+tag.src = "https://www.youtube.com/iframe_api";
+document.body.appendChild(tag);
+
+document.body.addEventListener('click', () => {
+  if (!started && player && player.playVideo) {
+    player.playVideo();
+    started = true;
+  }
+});
+</script>
+<div id="player"></div>
+</body>
+</html>

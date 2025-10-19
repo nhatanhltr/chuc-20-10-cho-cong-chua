@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>💖 Anh yêu công chúa của anh 💖</title>
+<style>
+  html,body { height:100%; margin:0; background:#000; overflow:hidden; font-family: "Helvetica Neue", Arial, sans-serif; }
+  #container { width:100vw; height:100vh; position:relative; }
+  canvas{ display:block; }
+
+  .msg {
+    position:absolute;
+    left:50%;
+    transform:translateX(-50%);
+    bottom:6vh;
+    text-align:center;
+    color:#ffdff0;
+    pointer-events:none;
+    text-shadow: 0 0 18px rgba(255,102,153,0.9);
+  }
+  .msg .title {
+    font-size: clamp(20px, 3.8vw, 44px);
+    font-weight:700;
+    letter-spacing:0.6px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+  }
+  .msg .sub {
+    font-size: clamp(10px, 1.6vw, 14px);
+    opacity:0.9;
+    margin-top:6px;
+  }
+
+  #playOverlay {
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.25));
+    border:1px solid rgba(255,255,255,0.06);
+    color:white;
+    padding:14px 22px;
+    border-radius:28px;
+    cursor:pointer;
+    backdrop-filter: blur(6px);
+    display:none;
+    z-index:20;
+  }
+
+  #audioBtn {
+    position:absolute;
+    right:18px;
+    top:18px;
+    z-index:20;
+    background:rgba(0,0,0,0.4);
+    color:#ffdff0;
+    border:1px solid rgba(255,255,255,0.06);
+    padding:8px 12px;
+    border-radius:20px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+
+  @media (hover: none) {
+    #playOverlay { padding:18px 26px; }
+  }
+</style>
+</head>
+<body>
+  <div id="container"></div>
+
+  <div id="playOverlay">⏯️ Nhấn để phát nhạc & xem điều bất ngờ</div>
+  <div id="audioBtn" title="Phát / Tạm dừng">⏸️ Dừng nhạc</div>
+
+  <div class="msg" aria-hidden="true">
+    <div class="title">💖 Anh yêu công chúa của anh 💖</div>
+    <div class="sub">Quỳnh, chúc công chúa của anh mãi mãi hạnh phúc</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.154.0/build/three.min.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
+
+<script>
+/* ---------------- CONFIG ---------------- */
+const MESSAGE = "• Chúc Quỳnh mãi mãi hạnh phúc • ";
+const VIDEO_ID = "IOe0tNoUGv8";
+const PARTICLE_COUNT = 9000;
+const HEART_SIZE_BASE = 1.9;
+/* ---------------------------------------- */
+
+const container = document.getElementById('container');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 1000);
+camera.position.set(0, 0, 5);
+
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+renderer.setPixelRatio(window.devicePixelRatio || 1);
+renderer.setSize(innerWidth, innerHeight);
+container.appendChild(renderer.domElement);
+
+window.addEventListener('resize', ()=> {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// ---------- Particles heart ----------
+const positions = new Float32Array(PARTICLE_COUNT * 3);
+const colors = new Float32Array(PARTICLE_COUNT * 3);
+
+// ✅ Sửa lại: không còn -y => trái tim đúng chiều
+function heartParam(t, r) {
+  const s = 1 - r*r;
+  const x = 16*Math.pow(Math.sin(t),3);
+  const y = 13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t);
+  const depth = (Math.random()-0.5) * 0.6;
+  return new THREE.Vector3(x * s, y * s, depth);
+}
+
+for (let i=0; i<PARTICLE_COUNT; i++){
+  const t = Math.random() * Math.PI * 2;
+  const r = Math.random();
+  const p = heartParam(t, r).multiplyScalar(0.055 * HEART_SIZE_BASE * (innerWidth/900));
+  p.x += (Math.random()-0.5) * 0.02 * HEART_SIZE_BASE;
+  p.y += (Math.random()-0.5) * 0.02 * HEART_SIZE_BASE;
+  positions[i*3] = p.x;
+  positions[i*3+1] = p.y + 0.18 * (innerWidth/900);
+  positions[i*3+2] = p.z;
+
+  const mix = Math.random() * 0.9 + 0.1;
+  colors[i*3] = 1.0;
+  colors[i*3+1] = 0.12 + 0.6*(1-mix);
+  colors[i*3+2] = 0.25 + 0.6*(1-mix);
+}
+
+const geo = new THREE.BufferGeometry();
+geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+const mat = new THREE.PointsMaterial({
+  size: 0.02 * (innerWidth/900),
+  vertexColors: true,
+  transparent: true,
+  opacity: 0.95,
+  depthWrite: false,
+  sizeAttenuation: true,
+});
+
+const points = new THREE.Points(geo, mat);
+scene.add(points);
+
+// ✅ sửa hướng silhouette
+const heartCanvas = document.createElement('canvas');
+heartCanvas.width = 512; heartCanvas.height = 512;
+const hctx = heartCanvas.getContext('2d');
+function drawSilhouette() {
+  hctx.clearRect(0,0,512,512);
+  hctx.save();
+  hctx.translate(256,256);
+  hctx.fillStyle = 'rgba(60,12,18,0.55)';
+  hctx.beginPath();
+  for (let t=0;t<=Math.PI*2;t+=0.01) {
+    const x = 16*Math.pow(Math.sin(t),3);
+    const y = 13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t);
+    if (t===0) hctx.moveTo(x*12, y*12);
+    else hctx.lineTo(x*12, y*12);
+  }
+  hctx.closePath();
+  hctx.fill();
+  hctx.restore();
+}
+drawSilhouette();
+const silTex = new THREE.CanvasTexture(heartCanvas);
+const silMat = new THREE.SpriteMaterial({ map: silTex, transparent:true, opacity:0.12 });
+const sil = new THREE.Sprite(silMat);
+sil.scale.set(3.8 * (innerWidth/600), 3.8 * (innerWidth/900), 1);
+sil.position.set(0, 0.2, -0.8);
+scene.add(sil);
+
+// sparkles
+const spriteMap = new THREE.TextureLoader().load('https://cdn.jsdelivr.net/gh/mrdoob/three.js@master/examples/textures/sprites/spark1.png');
+const sparkleCount = Math.max(220, Math.floor(PARTICLE_COUNT * 0.05));
+const spPos = new Float32Array(sparkleCount * 3);
+for (let i=0;i<sparkleCount;i++){
+  const idx = Math.floor(Math.random()*PARTICLE_COUNT);
+  spPos[i*3] = positions[idx*3] + (Math.random()-0.5)*0.8;
+  spPos[i*3+1] = positions[idx*3+1] + (Math.random()-0.5)*0.8;
+  spPos[i*3+2] = positions[idx*3+2] + (Math.random()-0.5)*0.8;
+}
+const spGeo = new THREE.BufferGeometry();
+spGeo.setAttribute('position', new THREE.BufferAttribute(spPos,3));
+const spMat = new THREE.PointsMaterial({ map: spriteMap, transparent:true, blending: THREE.AdditiveBlending, size:0.04 * (innerWidth/900), depthWrite:false, color:0xff99bb, opacity:0.95 });
+const sparkles = new THREE.Points(spGeo, spMat);
+scene.add(sparkles);
+
+// text ring
+const ring = new THREE.Group();
+scene.add(ring);
+function createTextTexture(txt) {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0,0,c.width,c.height);
+  ctx.font = "bold 28px Arial";
+  ctx.fillStyle = 'white';
+  ctx.textAlign = 'center';
+  ctx.shadowColor = '#ff99cc';
+  ctx.shadowBlur = 14;
+  ctx.fillText(txt, c.width/2, c.height/2 + 10);
+  return new THREE.CanvasTexture(c);
+}
+const bigRepeat = MESSAGE.repeat(40);
+const charsPer = 18;
+const countSprites = Math.ceil(bigRepeat.length / charsPer);
+const ringRadius = 2.6 * (innerWidth/900);
+for (let i=0;i<countSprites;i++){
+  const slice = bigRepeat.substr(i*charsPer, charsPer);
+  const tex = createTextTexture(slice);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent:true });
+  const sp = new THREE.Sprite(mat);
+  const angle = (i / countSprites) * Math.PI * 2;
+  sp.scale.set(1.8 * (innerWidth/900), 0.45 * (innerWidth/900), 1);
+  sp.position.set(Math.cos(angle) * ringRadius, -1.45 * (innerWidth/900), Math.sin(angle) * ringRadius);
+  sp.lookAt(new THREE.Vector3(0, -0.5, 0));
+  ring.add(sp);
+}
+
+// ✅ sửa hướng plane trái tim lớn
+const heartPlaneCanvas = document.createElement('canvas');
+heartPlaneCanvas.width = 1024; heartPlaneCanvas.height = 1024;
+const hp = heartPlaneCanvas.getContext('2d');
+hp.translate(512,512);
+hp.fillStyle = 'rgba(255,40,102,0.06)';
+hp.beginPath();
+for(let t=0;t<=Math.PI*2;t+=0.01){
+  const x = 16*Math.pow(Math.sin(t),3);
+  const y = 13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t);
+  if (t===0) hp.moveTo(x*18, y*18);
+  else hp.lineTo(x*18, y*18);
+}
+hp.closePath();
+hp.fill();
+const hpTex = new THREE.CanvasTexture(heartPlaneCanvas);
+const hpMat = new THREE.SpriteMaterial({ map: hpTex, transparent:true, opacity:0.08 });
+const hpSprite = new THREE.Sprite(hpMat);
+hpSprite.scale.set(6 * (innerWidth/900), 6 * (innerWidth/900), 1);
+hpSprite.position.set(0,0.12,-1.1);
+scene.add(hpSprite);
+
+// animate
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+  const beat = 1 + 0.08 * Math.sin(t * 2.1);
+  points.scale.set(beat, beat, beat);
+  ring.rotation.y = t * 0.55;
+  ring.position.y = -0.04 * Math.sin(t * 0.9);
+  points.rotation.y = 0.12 * Math.sin(t * 0.15);
+  const spArr = sparkles.geometry.attributes.position.array;
+  for (let i=0;i<sparkleCount;i++){
+    const idx = i*3+1;
+    spArr[idx] += 0.003 + 0.002*Math.sin(i + t*2);
+    if (spArr[idx] > 2.6 * (innerWidth/900)) spArr[idx] = -1.6 * (innerWidth/900) + Math.random()*0.4;
+  }
+  sparkles.geometry.attributes.position.needsUpdate = true;
+  sil.material.opacity = 0.10 + 0.04 * Math.sin(t * 2.1);
+  renderer.render(scene, camera);
+}
+animate();
+
+/* ------------------ YouTube audio ------------------ */
+let ytPlayer=null, attemptedAutoplay=false, isPlaying=false;
+function onYouTubeIframeAPIReady() {
+  ytPlayer = new YT.Player('yt-temp', {
+    height:'0', width:'0',
+    videoId:VIDEO_ID,
+    playerVars:{autoplay:1,controls:0,rel:0,loop:1,playlist:VIDEO_ID,modestbranding:1,playsinline:1},
+    events:{
+      onReady:(e)=>{
+        attemptedAutoplay=true;
+        e.target.mute(); e.target.playVideo();
+        setTimeout(()=>{try{e.target.unMute(); e.target.setVolume(80); isPlaying=true; updateAudioBtn(); hideOverlay();}catch{}},600);
+        setTimeout(()=>{if(!isPlaying) showOverlay();},800);
+      },
+      onStateChange:(e)=>{if(e.data===YT.PlayerState.PLAYING){isPlaying=true; updateAudioBtn(); hideOverlay();}}
+    }
+  });
+}
+const tmpDiv=document.createElement('div'); tmpDiv.id='yt-temp';
+tmpDiv.style.width='0'; tmpDiv.style.height='0'; tmpDiv.style.opacity='0'; tmpDiv.style.pointerEvents='none';
+document.body.appendChild(tmpDiv);
+const playOverlay=document.getElementById('playOverlay');
+const audioBtn=document.getElementById('audioBtn');
+function showOverlay(){ playOverlay.style.display='block'; }
+function hideOverlay(){ playOverlay.style.display='none'; }
+function updateAudioBtn(){
+  audioBtn.textContent=isPlaying?'⏸️ Dừng nhạc':'▶️ Phát nhạc';
+  audioBtn.style.display='flex';
+}
+playOverlay.addEventListener('click', ()=>{
+  if(ytPlayer){ ytPlayer.playVideo(); try{ytPlayer.unMute(); ytPlayer.setVolume(85);}catch{} isPlaying=true; updateAudioBtn(); hideOverlay(); }
+});
+audioBtn.addEventListener('click', ()=>{
+  if(!ytPlayer)return;
+  if(isPlaying){ ytPlayer.pauseVideo(); isPlaying=false; }
+  else { ytPlayer.playVideo(); try{ytPlayer.unMute(); ytPlayer.setVolume(85);}catch{} isPlaying=true; }
+  updateAudioBtn();
+});
+setTimeout(()=>{ if(!attemptedAutoplay) showOverlay(); },1400);
+window.addEventListener('keydown',(e)=>{ if(e.key===' '||e.key==='Enter'){ if(playOverlay.style.display!=='none') playOverlay.click(); }});
+</script>
+</body>
+</html>
